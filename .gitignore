@@ -25,3 +25,7 @@ barrier
 .DS_Store
 *.dSYM
 *.pcap
+*.idx
+config_defines.h
+*.code-workspace
+compile_commands.json
