@@ -121,11 +121,14 @@ superpg_test()
   testname = "superpg_test";
   
   char *end = sbrk(N);
-  if (end == 0 || end == (char*)0xffffffffffffffff)
+  if (end == 0 || end == (char*)0xffffffffffffffff){
+    printf("end: %p\n", (void *)(uint64)end);
     err("sbrk failed");
+  }
   
   uint64 s = SUPERPGROUNDUP((uint64) end);
   supercheck(s);
+  printf("supercheck1: OK\n");  
   if((pid = fork()) < 0) {
     err("fork");
   } else if(pid == 0) {

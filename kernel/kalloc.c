@@ -23,10 +23,20 @@ struct {
   struct run *freelist;
 } kmem;
 
+#ifdef LAB_PGTBL
+struct {
+  struct spinlock lock;
+  struct run *freelist;
+} supermem;
+#endif
+
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
+#ifdef LAB_PGTBL
+  initlock(&supermem.lock, "supermem");
+#endif
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -35,6 +45,15 @@ freerange(void *pa_start, void *pa_end)
 {
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
+#ifdef LAB_PGTBL
+  char *sp, *sp_end;
+  sp = (char*)SUPERPGROUNDUP((uint64)pa_start);
+  sp_end = sp + SUPERSZ;
+  for(; p + PGSIZE <= (char*)sp; p += PGSIZE)
+    kfree(p);
+  for(; p + SUPERPGSIZE <= sp_end; p += SUPERPGSIZE)
+    superkfree(p);
+#endif
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
 }
@@ -80,3 +99,37 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+#ifdef LAB_PGTBL
+void
+superkfree(void *pa)
+{
+  struct run *r;
+  if(((uint64)pa % SUPERPGSIZE)!= 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    panic("superkfree");
+
+  // Fill with junk to catch dangling refs.
+  memset(pa, 1, SUPERPGSIZE);
+
+  r = (struct run*)pa;
+
+  acquire(&supermem.lock);
+  r->next = supermem.freelist;
+  supermem.freelist = r;
+  release(&supermem.lock);
+}
+
+void *
+superkalloc(void)
+{
+  struct run *r;
+  acquire(&supermem.lock);
+  r = supermem.freelist;
+  if(r)
+    supermem.freelist = r->next;
+  release(&supermem.lock);
+  if(r)
+    memset((char*)r, 5, SUPERPGSIZE); // fill with junk
+  return (void*)r;
+}
+#endif

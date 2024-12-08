@@ -66,6 +66,13 @@ void            ramdiskrw(struct buf*);
 // kalloc.c
 void*           kalloc(void);
 void            kfree(void *);
+#ifdef LAB_PGTBL
+void*           superkalloc(void);
+void            superkfree(void *);
+#else
+void*           superkalloc(void){return 0;}
+void            superkfree(void *){return;};
+#endif
 void            kinit(void);
 
 // log.c
@@ -168,6 +175,11 @@ void            kvminit(void);
 void            kvminithart(void);
 void            kvmmap(pagetable_t, uint64, uint64, uint64, int);
 int             mappages(pagetable_t, uint64, uint64, uint64, int);
+#ifdef LAB_PGTBL
+int             mapsuperpages(pagetable_t, uint64, uint64, uint64, int);
+#else
+int             mapsuperpages(pagetable_t, uint64, uint64, uint64, int){return 0;}
+#endif
 pagetable_t     uvmcreate(void);
 void            uvmfirst(pagetable_t, uchar *, uint);
 uint64          uvmalloc(pagetable_t, uint64, uint64, int);
@@ -177,6 +189,11 @@ void            uvmfree(pagetable_t, uint64);
 void            uvmunmap(pagetable_t, uint64, uint64, int);
 void            uvmclear(pagetable_t, uint64);
 pte_t *         walk(pagetable_t, uint64, int);
+#ifdef LAB_PGTBL
+pte_t *         superwalk(pagetable_t, uint64, int);
+#else
+pte_t *         superwalk(pagetable_t, uint64, int){return 0;}
+#endif
 uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
